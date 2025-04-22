@@ -1,4 +1,5 @@
-{{- if .Values.autoscaling.enabled }}
+{{- if .Values.enabled }}
+{{- if and .Values.autoscaling.enabled (eq .Values.autoscaling.type "native") }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -13,14 +14,6 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-    {{- end }}
     {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
@@ -29,4 +22,39 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+{{- if and .Values.autoscaling.enabled (eq .Values.autoscaling.type "keda") }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "deployment.fullname" . }}
+  labels:
+    {{- include "deployment.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "deployment.fullname" . }}
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  triggers:
+  {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+  - type: cpu
+    metricType: Utilization
+    metadata:
+      value: "{{ .Values.autoscaling.targetCPUUtilizationPercentage }}"
+  {{- end }}
+  {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: memory
+    metricType: Utilization
+    metadata:
+      value: "{{ .Values.autoscaling.targetMemoryUtilizationPercentage }}"
+  {{- end }}
+{{- end }}
 {{- end }}
