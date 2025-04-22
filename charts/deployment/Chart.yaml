@@ -1,6 +1,6 @@
 apiVersion: v2
 name: deployment
-description: basepipeline for deployment
+description: shiftlabsdev template
 type: application
-version: 1.1.0
-appVersion: "1.5.59"
+version: 1.0.3
+appVersion: "1.0.0"
